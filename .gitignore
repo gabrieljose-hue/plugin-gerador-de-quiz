@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+
+# Dependências (se usar npm/composer no futuro)
+node_modules/
+vendor/
+
+# Arquivos de ambiente / secrets
+.env
+.env.local
+*.pem
