@@ -1,8 +1,0 @@
-{
-  "name": "gerador-pagina-venda-mentoria-fluxo",
-  "version": "2.0.0",
-  "description": "Gerador de Página de Venda - Mentoria Fluxo. Transforma copy em HTML profissional com 7 skills: copywriter (QFD) → extrator-copy → revisor-copy (sênior) → designer-html → revisor-design (sênior) → construtor-html. Valida copy (promessa, persuasão) e design (memorável, não-IA). Mentorado gera ou cola copy, responde 8 perguntas, e recebe página pronta para vender.",
-  "author": {
-    "name": "RTG Marketing Digital"
-  }
-}

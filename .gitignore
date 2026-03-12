@@ -9,3 +9,7 @@ vendor/
 .env
 .env.local
 *.pem
+
+mapa-mental.txt
+prompt-gerador-de-quiz.txt
+quizes-vencedores.txt

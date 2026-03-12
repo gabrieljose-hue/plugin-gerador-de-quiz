@@ -1,0 +1,9 @@
+{
+  "name": "gerador-de-quiz-mentoria-fluxo",
+  "version": "1.0.0",
+  "description": "Gerador de Quiz RTG. Cria quizzes de vendas automaticamente no estilo Inlead — 13 etapas estruturadas para converter leads em compradores. Coleta dados do produto, tema e depoimentos, depois gera todas as telas do quiz: abertura, dados demograficos, diagnostico, dores, desejos, depoimentos, micro-compromisso, carregamento e pagina de vendas interna.",
+  "author": {
+    "name": "RTG Marketing Digital"
+  },
+  "keywords": ["quiz", "vendas", "lead", "marketing", "conversao", "inlead", "diagnostico"]
+}
