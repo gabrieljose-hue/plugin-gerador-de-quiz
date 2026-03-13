@@ -367,16 +367,14 @@ animarContador(6000);
 
 Mostrar o componente de resultado usado na Tela 17 do quiz.
 
-**Layout**: 2 colunas lado a lado, separadas por uma linha divisoria vertical
+**Layout**: 2 colunas lado a lado, separadas por uma linha divisoria vertical. Sem imagens — apenas badges, metricas e termometros.
 
 **Coluna Antes**:
-- Label "Antes" como badge escuro no topo da imagem
-- Imagem quadrada arredondada (ilustracao ou foto de pessoa frustrada/cansada)
+- Label "Antes" como badge escuro no topo
 - 2 metricas com termometro parcial
 
 **Coluna Depois**:
-- Label "Depois" como badge escuro no topo da imagem
-- Imagem quadrada arredondada (ilustracao ou foto de pessoa celebrando/energizada)
+- Label "Depois" como badge escuro no topo
 - 2 metricas com termometro completo
 
 **Cada metrica**:
@@ -549,23 +547,31 @@ Se algum check critico falha: corrigir e regenerar. Nao perguntar ao usuario sob
 
 ## PASSO 5: Apresentar ao Usuario e Aguardar Aprovacao
 
-Apos salvar os dois arquivos, usar a ferramenta `Read` em `output/design-preview.html` e em `output/design-tokens.json` para que apareçam como cards clicaveis no chat. NAO mencionar caminhos de arquivo como texto.
+Apos salvar os dois arquivos, executar as seguintes acoes **em sequencia**:
 
-Em seguida, retornar ao chat:
+**1. Abrir o preview automaticamente no Chrome** — executar via Bash:
+```
+open -a "Google Chrome" "$(pwd)/output/design-preview.html"
+```
+Isso garante que o usuario VE o design system diretamente no navegador, sem precisar abrir nenhum arquivo manualmente.
+
+**2. Usar `Read`** em `output/design-tokens.json` para que o JSON apareca como card clicavel no chat (referencia tecnica).
+
+**3. Retornar resumo no chat**:
 
 ```
-Design system do quiz criado!
+Design system do quiz criado! O preview abriu no Chrome automaticamente.
 
-  • Estilo: [estilo]
-  • Nicho: [nicho identificado]
-  • Cor principal: [HEX] — [nome da cor]
-  • Fonte titulo: [fonte] | Corpo: [fonte]
-  • Botao: [estilo] com raio [raio]
-  • Cards: [estilo] com raio [raio]
-  • Progresso: [altura] com raio [raio]
-
-Clique nos arquivos acima para ver o preview e os tokens de design.
+  Estilo: [estilo]
+  Nicho: [nicho identificado]
+  Cor principal: [HEX] — [nome da cor]
+  Fonte titulo: [fonte] | Corpo: [fonte]
+  Botao: [estilo] com raio [raio]
+  Cards: [estilo] com raio [raio]
+  Progresso: [altura] com raio [raio]
 ```
+
+**IMPORTANTE**: O preview JA abriu no Chrome. Nao pedir para o usuario abrir arquivos, clicar em pastas ou verificar caminhos. Qualquer frase como "Clique nos arquivos acima", "Abra o arquivo X", "Veja em output/" e **proibida**.
 
 Em seguida, perguntar no chat (texto simples — NAO usar `AskUserQuestion` neste momento especifico):
 
@@ -573,7 +579,7 @@ Em seguida, perguntar no chat (texto simples — NAO usar `AskUserQuestion` nest
 
 **Se aprovar**: Retornar para o fluxo do comando. Voltar a usar `AskUserQuestion` normalmente a partir daqui.
 
-**Se querer ajuste de cores**: Usar `AskUserQuestion` com 1 pergunta (tipo: other) pedindo a descricao dos ajustes. Atualizar a paleta, regerar o preview HTML, usar `Read` nos arquivos atualizados e perguntar aprovacao novamente no chat (texto simples, sem `AskUserQuestion`).
+**Se querer ajuste de cores**: Usar `AskUserQuestion` com 1 pergunta (tipo: other) pedindo a descricao dos ajustes. Atualizar a paleta, regerar o preview HTML, executar `open -a "Google Chrome" "$(pwd)/output/design-preview.html"` novamente para o usuario ver as mudancas, usar `Read` no JSON atualizado e perguntar aprovacao novamente no chat (texto simples, sem `AskUserQuestion`).
 
 ---
 
@@ -584,11 +590,12 @@ Em seguida, perguntar no chat (texto simples — NAO usar `AskUserQuestion` nest
 3. Se cor do usuario nao combina com o nicho: usar `AskUserQuestion` com 1 pergunta (sugestoes de cor) e aguardar resposta
 4. Montar e salvar `output/design-tokens.json`
 5. Gerar e salvar `output/design-preview.html` com as 10 secoes do kit (sem tela de captura)
-4.5. Auto-validar os 9 checkpoints — se falhar, corrigir e regenerar
-6. Usar `Read` em `output/design-preview.html` e `output/design-tokens.json` — nunca mencionar os caminhos como texto
-7. Retornar resumo ao chat + pergunta de aprovacao no chat (texto simples — sem AskUserQuestion)
-7. Se ajuste de cores: refazer paleta e preview, usar Read nos arquivos e perguntar aprovacao novamente no chat (texto simples)
-8. Se aprovado: prosseguir para o revisor-quiz
+5.5. Auto-validar os 9 checkpoints — se falhar, corrigir e regenerar
+6. Abrir `output/design-preview.html` no Chrome automaticamente (`open -a "Google Chrome"`) — o usuario VE o preview sem precisar abrir nada
+7. Usar `Read` em `output/design-tokens.json` — nunca mencionar caminhos como texto
+8. Retornar resumo ao chat + pergunta de aprovacao no chat (texto simples — sem AskUserQuestion)
+9. Se ajuste de cores: refazer paleta e preview, abrir no Chrome novamente, usar Read no JSON e perguntar aprovacao no chat
+10. Se aprovado: prosseguir para o proximo passo do comando
 
 ---
 

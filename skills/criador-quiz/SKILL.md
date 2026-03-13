@@ -86,7 +86,27 @@ Baseado em `depoimentos_quantidade` dos dados:
 
 ---
 
-### D. Registrar decisoes
+### D. Distribuir imagens do usuario (`imagens_quiz`)
+
+Ler `imagens_quiz` de `dados-quiz.json`. Se o array estiver vazio ou ausente, pular esta etapa.
+
+**Regras de distribuicao (NUNCA repetir a mesma imagem em mais de uma tela)**:
+
+- **1 imagem**: Atribuir a Tela 1 (abertura) apenas
+- **2 imagens**: Imagem 1 → Tela 1 | Imagem 2 → sortear 1 tela entre as telas de pergunta disponiveis (4, 6, 7, 8, 9, 10, 13, 15)
+- **3 imagens**: Imagem 1 → Tela 1 | Imagens 2-3 → sortear 2 telas entre as telas de pergunta
+- **4 imagens**: Imagem 1 → Tela 1 | Imagens 2-4 → sortear 3 telas entre as telas de pergunta
+- **5 imagens**: Imagem 1 → Tela 1 | Imagens 2-5 → sortear 4 telas entre as telas de pergunta
+
+**Telas elegiveis para receber imagens (alem da Tela 1)**: telas de pergunta e apresentacao que NAO sejam carregamento (16), resultado com termometro (17) ou pagina de vendas (18). Telas elegiveis: 3, 4, 6, 7, 8, 9, 10, 13, 14, 15.
+
+**Prioridade**: A Tela 1 SEMPRE recebe a primeira imagem. As demais sao distribuidas aleatoriamente nas telas elegiveis, sem repetir nenhuma imagem.
+
+Para cada tela que receber imagem, adicionar o campo `imagem_url` com a URL correspondente no objeto da tela em `quiz.json`.
+
+---
+
+### E. Registrar decisoes
 
 Antes de gerar, registrar no `quiz.json` (campo `meta`):
 ```json
@@ -95,9 +115,12 @@ Antes de gerar, registrar no `quiz.json` (campo `meta`):
   "incluir_idade": true,
   "telas_depoimentos": 1,
   "motivo_genero": "tema universal — produtividade",
-  "motivo_idade": "desenvolvimento pessoal — faixa etaria relevante"
+  "motivo_idade": "desenvolvimento pessoal — faixa etaria relevante",
+  "imagens_distribuidas": { "1": "https://...", "4": "https://...", "9": "https://..." }
 }
 ```
+
+O campo `imagens_distribuidas` mapeia o ID da tela para a URL da imagem atribuida. Se `imagens_quiz` estiver vazio, este campo sera `{}`.
 
 ---
 
@@ -604,6 +627,7 @@ Cada tela deve ser documentada no seguinte formato:
       "progresso": 0,
       "titulo": "string",
       "subtitulo": "string",
+      "imagem_url": "string (URL real se atribuida via imagens_quiz, ou vazio)",
       "imagem_sugerida": "string",
       "botao": "string",
       "opcoes": [

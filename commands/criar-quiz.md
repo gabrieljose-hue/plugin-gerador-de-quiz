@@ -16,6 +16,8 @@ Cada passo deve fluir automaticamente para o proximo sem anunciar, pedir confirm
 
 **Sempre usar a ferramenta `Read`** para ler cada arquivo de output logo apos salva-lo. Quando o `Read` e usado, o Claude Code renderiza um card clicavel do arquivo diretamente no chat — o usuario clica e ve o conteudo sem sair da conversa.
 
+**Nunca instruir o usuario a interagir com os cards**. Os cards gerados pelo `Read` ja sao autoexplicativos. Frases como "Clique nos arquivos acima", "Veja o preview no card", "Abra o arquivo X" sao **proibidas**. O card aparece, o usuario entende sozinho.
+
 Esta regra se aplica a este comando e a todas as skills chamadas por ele, sem excecao.
 
 ## REGRA DE PERGUNTAS (OBRIGATORIO — SEM EXCECAO)
@@ -61,9 +63,9 @@ Coletar todos os dados inline via 5 rodadas de `AskUserQuestion`. Nao chamar nen
 
 ---
 
-#### Rodada B-1: Produto e Oferta (5 perguntas)
+#### Rodada B-1: Produto e Oferta (7 perguntas)
 
-Usar `AskUserQuestion` com 5 perguntas:
+Usar `AskUserQuestion` com 7 perguntas:
 
 1. **Tema do Quiz**
    - Header: "Tema do Quiz"
@@ -90,6 +92,27 @@ Usar `AskUserQuestion` com 5 perguntas:
    - Header: "Transformacao Principal"
    - Pergunta: "Qual e a principal transformacao que o produto promete? (Ex: Ler 3x mais rapido em 30 dias)"
    - Tipo: other
+
+6. **Logo do Produto**
+   - Header: "Logo do Produto"
+   - Pergunta: "O produto tem logo? Se sim, cole a URL da imagem da logo. Se nao, deixe em branco."
+   - Tipo: other
+
+7. **Imagens do Quiz**
+   - Header: "Imagens do Quiz"
+   - Pergunta: "Deseja adicionar imagens para ilustrar as telas do quiz? (ate 5 imagens)"
+   - Tipo: single-select
+   - Opcoes:
+     - "Sim, vou enviar as URLs" (description: "Posso enviar ate 5 URLs de imagens para distribuir nas telas")
+     - "Nao, seguir sem imagens" (description: "O quiz sera gerado sem imagens ilustrativas")
+
+**Se a resposta da pergunta 7 for "Sim, vou enviar as URLs"** → Usar `AskUserQuestion` com 1 pergunta adicional (Rodada B-1b):
+
+- Header: "URLs das Imagens"
+- Pergunta: "Cole as URLs das imagens (ate 5, uma por linha). A primeira imagem sera usada na tela inicial do quiz. As demais serao distribuidas nas outras telas sem repetir."
+- Tipo: other
+
+**Se a resposta for "Nao, seguir sem imagens"**: Registrar `imagens_quiz = []`.
 
 ---
 
@@ -196,6 +219,7 @@ Com todas as respostas coletadas, aplicar as seguintes conversoes de tipo:
 - `publico.segmentar_genero`: "Sim, segmentar por genero" → `true`; "Nao, quiz unico para todos" → `false`
 - `depoimentos` (URLs da Rodada B-4b): `split("\n").map(url => ({ imagem_url: url.trim() }))`
 - `depoimentos_quantidade`: "Sim, 3 ou mais" → `"3+"`; "Sim, 1 ou 2" → `"1-2"`; "Nenhum" → `"0"`
+- `imagens_quiz` (URLs da Rodada B-1b): `split("\n").map(url => url.trim()).filter(Boolean).slice(0, 5)` — maximo 5 URLs; se "Nao, seguir sem imagens" → `[]`
 
 **Aplicar inferencias automaticas** (completar dados que o usuario pode ter informado de forma insuficiente):
 
@@ -216,6 +240,7 @@ Salvar em `output/dados-quiz.json`:
     "preco": "string",
     "link_checkout": "string",
     "transformacao_principal": "string",
+    "logo_url": "string (URL da logo ou vazio)",
     "objetivos_especificos": ["string", "string", "string", "string"],
     "amplificar_oportunidade": "string",
     "entregaveis": "string"
@@ -232,6 +257,7 @@ Salvar em `output/dados-quiz.json`:
   "desejos": ["string", "string", "string", "string"],
   "depoimentos_quantidade": "string",
   "depoimentos": [{ "imagem_url": "string" }],
+  "imagens_quiz": ["string (URLs das imagens — max 5)"],
   "campos_ausentes": []
 }
 ```
@@ -255,6 +281,31 @@ Chamar skill **revisor-dados** para validar e ajustar `output/dados-quiz.json`.
 - Aprova o JSON quando todos os campos obrigatorios estiverem OK
 
 **Saida**: `output/dados-quiz.json` validado e completo
+
+---
+
+## PASSO 0.6: Coletar Imagens do Quiz (ambos os caminhos)
+
+**IMPORTANTE**: Este passo so e executado quando o usuario veio pelo **Caminho A** (colou copy/briefing). No **Caminho B** (respondeu perguntas), as imagens ja foram coletadas na Rodada B-1 — ir direto para o PASSO 1.
+
+Usar `AskUserQuestion` com 1 pergunta:
+- Header: "Imagens do Quiz"
+- Pergunta: "Deseja adicionar imagens para ilustrar as telas do quiz? (ate 5 imagens)"
+- Tipo: single-select
+- Opcoes:
+  - "Sim, vou enviar as URLs" (description: "Posso enviar ate 5 URLs de imagens para distribuir nas telas")
+  - "Nao, seguir sem imagens" (description: "O quiz sera gerado sem imagens ilustrativas")
+
+**Se "Sim"**: Usar `AskUserQuestion` com 1 pergunta:
+- Header: "URLs das Imagens"
+- Pergunta: "Cole as URLs das imagens (ate 5, uma por linha). A primeira imagem sera usada na tela inicial do quiz. As demais serao distribuidas nas outras telas sem repetir."
+- Tipo: other
+
+Parsear as URLs: `split("\n").map(url => url.trim()).filter(Boolean).slice(0, 5)`
+
+Atualizar `output/dados-quiz.json` adicionando o campo `imagens_quiz` com o array de URLs.
+
+**Se "Nao"**: Adicionar `"imagens_quiz": []` ao `output/dados-quiz.json`.
 
 ---
 

@@ -67,6 +67,7 @@ Depois de receber as respostas, aprovar e seguir.
 |-------|----------|-----------------|
 | `produto.preco` | Presente | Deixar como "[INSERIR PRECO]" — nao perguntar |
 | `produto.link_checkout` | Presente | Deixar como "[INSERIR LINK]" — nao perguntar |
+| `produto.logo_url` | URL da logo do produto | Se ausente: deixar como "" (vazio) — nao perguntar. A logo e opcional |
 | `publico.numeros_sociais` | Presente | Inferir forma generica: "+centenas de alunos" — nao perguntar |
 | `produto.amplificar_oportunidade` | Presente — frase curta que elimina a barreira para o resultado (ex: "15 minutos por dia", "sem experiencia anterior") | Inferir do contexto (ver Regra 4) — nao perguntar |
 | `produto.entregaveis` | Presente (string com itens separados por `\|`) | Se ausente ou `"[INSERIR ENTREGAVEIS]"`: registrar em `campos_ausentes` mas nao perguntar ao usuario — nao inferir |

@@ -277,6 +277,15 @@ O arquivo gerado segue esta estrutura:
     }
     .btn-inline:hover { background: var(--cor-primaria-dark); }
 
+    /* === LOGO (tela 1 — acima do titulo) === */
+    .quiz-logo {
+      display: block;
+      max-width: 160px;
+      max-height: 60px;
+      object-fit: contain;
+      margin: 0 auto 20px;
+    }
+
     /* === GENERO (tela 1 — escolha de genero) === */
     .genero-opcoes { display: flex; gap: 12px; margin-bottom: 24px; }
     .genero-card {
@@ -367,13 +376,6 @@ O arquivo gerado segue esta estrutura:
       font-weight: 700;
       padding: 4px 12px;
       border-radius: 50px;
-      margin-bottom: 8px;
-    }
-    .antes-depois-img {
-      width: 100%;
-      aspect-ratio: 1;
-      object-fit: cover;
-      border-radius: var(--card-raio);
       margin-bottom: 12px;
     }
     .metrica { margin-bottom: 14px; text-align: left; }
@@ -461,6 +463,9 @@ Para cada tela em `quiz.json.telas`, gerar o HTML correspondente com base no `ti
 **Excecao — Tela 1 com escolha de genero** (quando `meta.incluir_genero = true`):
 ```html
 <div id="tela-1" class="tela ativa">
+  [se produto.logo_url existir e nao estiver vazio]
+  <img src="[produto.logo_url]" alt="[produto.nome]" class="quiz-logo">
+
   [imagem se houver]
   <h1 class="quiz-titulo">[titulo]</h1>
   <p class="quiz-subtitulo">[subtitulo]</p>
@@ -470,6 +475,21 @@ Para cada tela em `quiz.json.telas`, gerar o HTML correspondente com base no `ti
   </div>
 </div>
 ```
+
+**Excecao — Tela 1 sem genero** (quando `meta.incluir_genero = false`):
+```html
+<div id="tela-1" class="tela ativa">
+  [se produto.logo_url existir e nao estiver vazio]
+  <img src="[produto.logo_url]" alt="[produto.nome]" class="quiz-logo">
+
+  [imagem se houver]
+  <h1 class="quiz-titulo">[titulo]</h1>
+  <p class="quiz-subtitulo">[subtitulo]</p>
+  <button class="btn-inline" onclick="if(window.enviarParaSheets)enviarParaSheets({tela:'1',evento:'avancou'}); irPara('[proxima_tela]')">[texto_botao]</button>
+</div>
+```
+
+**Regra da logo**: A logo so aparece na Tela 1 (abertura). Nenhuma outra tela deve exibir a logo. Se `produto.logo_url` estiver vazio, nao gerar a tag `<img>` da logo.
 
 ---
 
@@ -589,7 +609,6 @@ As metricas devem ser baseadas no tema do produto (extraidas de `dados-quiz.json
     <!-- Coluna Antes -->
     <div class="antes-depois-col">
       <span class="antes-depois-badge">Antes</span>
-      <img src="[URL_imagem_antes ou vazio]" alt="Antes" class="antes-depois-img" style="[display:none se sem URL]">
       <div class="metrica">
         <div class="metrica-nome">[Metrica 1 — ex: Velocidade de leitura]</div>
         <div class="metrica-row">
@@ -623,7 +642,6 @@ As metricas devem ser baseadas no tema do produto (extraidas de `dados-quiz.json
     <!-- Coluna Depois -->
     <div class="antes-depois-col">
       <span class="antes-depois-badge">Depois</span>
-      <img src="[URL_imagem_depois ou vazio]" alt="Depois" class="antes-depois-img" style="[display:none se sem URL]">
       <div class="metrica">
         <div class="metrica-nome">[Metrica 1 — mesma do Antes]</div>
         <div class="metrica-row">
@@ -869,9 +887,11 @@ document.addEventListener('DOMContentLoaded', () => {
 - Telas condicionais (11B): `tela-11b`
 
 ### R2: Imagens
-- Se `imagens-quiz.json` tiver URL para a tela: usar no `src` da tag `<img>`
-- Se nao tiver: gerar `<img src="" alt="[descricao da imagem sugerida]" class="quiz-imagem" style="display:none">` com `display:none` — o usuario adiciona a URL depois
+- Se a tela em `quiz.json` tiver campo `imagem_url` preenchido (nao vazio): usar no `src` da tag `<img class="quiz-imagem">`
+- Se `imagens-quiz.json` tiver URL para a tela (fallback): usar no `src` da tag `<img>`
+- Se nenhuma fonte tiver URL: gerar `<img src="" alt="[descricao da imagem sugerida]" class="quiz-imagem" style="display:none">` com `display:none` — o usuario adiciona a URL depois
 - Nunca quebrar o layout por imagem faltando
+- Cada imagem aparece em apenas 1 tela — nunca repetir a mesma URL em telas diferentes
 
 ### R3: Links de checkout
 - Se `link_checkout` estiver preenchido: usar no `href` dos botoes da tela 18

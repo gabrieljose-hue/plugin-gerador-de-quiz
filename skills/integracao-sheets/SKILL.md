@@ -41,6 +41,11 @@ Criar o arquivo com o codigo completo do Google Apps Script:
 //   5. Clique em "Deploy" > "New deployment"
 //   6. Tipo: Web App | Execute as: Me | Who has access: Anyone
 //   7. Autorize e copie a URL gerada — volte ao Claude e cole a URL
+//
+// IMPORTANTE — Google Workspace:
+//   Se sua conta Google pertence a uma organizacao (ex: @empresa.com.br),
+//   na etapa 6 escolha "Anyone" (qualquer pessoa), NAO "Anyone within [org]".
+//   Caso contrario, acessos externos receberao erro 404.
 // ============================================================
 
 const ABA_RESPOSTAS = 'Respostas';
@@ -66,87 +71,99 @@ const COL_INICIOU_EM    = 25; // Y — preenchido quando o quiz e iniciado (prim
 
 function doPost(e) {
   try {
-    const sheet = obterOuCriarAba_();
-    // Aceita tanto application/json quanto text/plain (sendBeacon envia como text/plain)
-    const raw   = e.postData.contents;
-    const data  = JSON.parse(raw);
-    const { sessionId, tela, resposta, respostas, evento, timestamp } = data;
-
-    const ts      = timestamp || new Date().toISOString();
-    const rows    = sheet.getDataRange().getValues();
-    let rowIndex  = -1;
-
-    // Busca sessionId na coluna A (ignora cabecalho na linha 0)
-    for (let i = 1; i < rows.length; i++) {
-      if (rows[i][0] === sessionId) {
-        rowIndex = i + 1; // indice 1-based do Sheets
-        break;
-      }
-    }
-
-    if (rowIndex === -1) {
-      // Nova linha — inicializar com todas as colunas vazias
-      const novaLinha = Array(COL_INICIOU_EM).fill('');
-      novaLinha[COL_SESSION_ID    - 1] = sessionId;
-      novaLinha[COL_CRIADO_EM     - 1] = ts;
-      novaLinha[COL_ATUALIZADO_EM - 1] = ts;
-
-      // Sempre registrar tela_atual quando tela esta presente
-      if (tela) {
-        novaLinha[COL_TELA_ATUAL - 1] = tela;
-      }
-
-      // Gravar resposta/evento na coluna da tela (se mapeada)
-      if (tela && TELA_COL[String(tela)]) {
-        const col = TELA_COL[String(tela)];
-        novaLinha[col - 1] = formatarResposta_(resposta, respostas, evento);
-      }
-
-      if (evento === 'clicou_checkout') {
-        novaLinha[COL_CHECKOUT - 1] = ts;
-        novaLinha[COL_TELA_ATUAL - 1] = 'checkout';
-      }
-
-      if (evento === 'iniciou_quiz') {
-        novaLinha[COL_INICIOU_EM - 1] = ts;
-        novaLinha[COL_TELA_ATUAL - 1] = '1';
-      }
-
-      sheet.appendRow(novaLinha);
-
-    } else {
-      // Atualizar linha existente (upsert por sessionId)
-      sheet.getRange(rowIndex, COL_ATUALIZADO_EM).setValue(ts);
-
-      // Sempre atualizar tela_atual quando tela esta presente
-      if (tela) {
-        sheet.getRange(rowIndex, COL_TELA_ATUAL).setValue(tela);
-      }
-
-      // Gravar resposta/evento na coluna da tela (se mapeada)
-      if (tela && TELA_COL[String(tela)]) {
-        const col = TELA_COL[String(tela)];
-        sheet.getRange(rowIndex, col).setValue(formatarResposta_(resposta, respostas, evento));
-      }
-
-      if (evento === 'clicou_checkout') {
-        sheet.getRange(rowIndex, COL_CHECKOUT).setValue(ts);
-        sheet.getRange(rowIndex, COL_TELA_ATUAL).setValue('checkout');
-      }
-      // iniciou_quiz em linha existente = lead recarregou a pagina — nao sobrescreve iniciou_em
-    }
-
-    return ContentService.createTextOutput('ok');
-
+    const raw = e.postData.contents;
+    return processarDados_(raw);
   } catch (err) {
-    // Nao expor detalhes do erro publicamente
     return ContentService.createTextOutput('erro');
   }
 }
 
-// GET de healthcheck para confirmar que o deploy esta ativo
+// GET com fallback: se receber ?data=..., processa como dados do quiz
+// Caso contrario, retorna healthcheck
 function doGet(e) {
-  return ContentService.createTextOutput('quiz-tracker-ok');
+  try {
+    if (e.parameter.data) {
+      const raw = decodeURIComponent(e.parameter.data);
+      return processarDados_(raw);
+    }
+    return ContentService.createTextOutput('quiz-tracker-ok');
+  } catch (err) {
+    return ContentService.createTextOutput('erro');
+  }
+}
+
+// ---- Logica central de processamento (usada por doPost e doGet) ----
+
+function processarDados_(raw) {
+  const sheet = obterOuCriarAba_();
+  const data  = JSON.parse(raw);
+  const { sessionId, tela, resposta, respostas, evento, timestamp } = data;
+
+  const ts      = timestamp || new Date().toISOString();
+  const rows    = sheet.getDataRange().getValues();
+  let rowIndex  = -1;
+
+  // Busca sessionId na coluna A (ignora cabecalho na linha 0)
+  for (let i = 1; i < rows.length; i++) {
+    if (rows[i][0] === sessionId) {
+      rowIndex = i + 1; // indice 1-based do Sheets
+      break;
+    }
+  }
+
+  if (rowIndex === -1) {
+    // Nova linha — inicializar com todas as colunas vazias
+    const novaLinha = Array(COL_INICIOU_EM).fill('');
+    novaLinha[COL_SESSION_ID    - 1] = sessionId;
+    novaLinha[COL_CRIADO_EM     - 1] = ts;
+    novaLinha[COL_ATUALIZADO_EM - 1] = ts;
+
+    // Sempre registrar tela_atual quando tela esta presente
+    if (tela) {
+      novaLinha[COL_TELA_ATUAL - 1] = tela;
+    }
+
+    // Gravar resposta/evento na coluna da tela (se mapeada)
+    if (tela && TELA_COL[String(tela)]) {
+      const col = TELA_COL[String(tela)];
+      novaLinha[col - 1] = formatarResposta_(resposta, respostas, evento);
+    }
+
+    if (evento === 'clicou_checkout') {
+      novaLinha[COL_CHECKOUT - 1] = ts;
+      novaLinha[COL_TELA_ATUAL - 1] = 'checkout';
+    }
+
+    if (evento === 'iniciou_quiz') {
+      novaLinha[COL_INICIOU_EM - 1] = ts;
+      novaLinha[COL_TELA_ATUAL - 1] = '1';
+    }
+
+    sheet.appendRow(novaLinha);
+
+  } else {
+    // Atualizar linha existente (upsert por sessionId)
+    sheet.getRange(rowIndex, COL_ATUALIZADO_EM).setValue(ts);
+
+    // Sempre atualizar tela_atual quando tela esta presente
+    if (tela) {
+      sheet.getRange(rowIndex, COL_TELA_ATUAL).setValue(tela);
+    }
+
+    // Gravar resposta/evento na coluna da tela (se mapeada)
+    if (tela && TELA_COL[String(tela)]) {
+      const col = TELA_COL[String(tela)];
+      sheet.getRange(rowIndex, col).setValue(formatarResposta_(resposta, respostas, evento));
+    }
+
+    if (evento === 'clicou_checkout') {
+      sheet.getRange(rowIndex, COL_CHECKOUT).setValue(ts);
+      sheet.getRange(rowIndex, COL_TELA_ATUAL).setValue('checkout');
+    }
+    // iniciou_quiz em linha existente = lead recarregou a pagina — nao sobrescreve iniciou_em
+  }
+
+  return ContentService.createTextOutput('ok');
 }
 
 // ---- Helpers ----
@@ -188,21 +205,23 @@ function obterOuCriarAba_() {
 
 ---
 
-## ETAPA 2.5: Pedir a URL do Apps Script
+## ETAPA 2.5: Mostrar o script e pedir a URL
 
-Apos salvar o `apps-script.gs`, exibir no chat o codigo completo diretamente como card copiavel, seguido das instrucoes de deploy. O usuario NAO deve ser direcionado a abrir nenhum arquivo — tudo deve estar visivel no chat.
+Apos salvar o `apps-script.gs`, executar as seguintes acoes **em sequencia**:
 
-Exibir no chat:
+**1. Abrir o arquivo automaticamente no editor** — executar via Bash:
+```
+open "$(pwd)/output/apps-script.gs"
+```
+Isso abre o arquivo no editor padrao do sistema, permitindo ao usuario ver e copiar o codigo completo sem precisar navegar ate a pasta.
+
+**2. Usar `Read`** em `output/apps-script.gs` para que o conteudo tambem apareca como card/preview no chat.
+
+**3. Exibir as instrucoes de deploy E pedir a URL diretamente no chat** (texto simples — NAO usar `AskUserQuestion`):
 
 ```
-Codigo do Google Apps Script gerado! Copie o bloco abaixo e cole no editor do Apps Script:
-```
+Codigo do Apps Script gerado! O arquivo abriu automaticamente e o codigo completo esta no preview acima.
 
-Em seguida, exibir o codigo completo do `apps-script.gs` dentro de um bloco de codigo ```gs ... ``` no chat.
-
-Depois do bloco de codigo, exibir as instrucoes de deploy:
-
-```
 Como fazer o deploy:
   1. Abra sua planilha no Google Sheets → Extensions > Apps Script
   2. Apague o conteudo existente e cole o codigo acima
@@ -211,13 +230,14 @@ Como fazer o deploy:
   5. Tipo: Web App | Execute as: Me | Who has access: Anyone
   6. Autorize e copie a URL gerada (formato: https://script.google.com/macros/s/XXXXX/exec)
 
-Cole a URL aqui para eu incluir ela no codigo do quiz automaticamente.
+Importante: Se sua conta Google pertence a uma organizacao (ex: @empresa.com.br),
+na etapa 5 escolha "Anyone" (qualquer pessoa), NAO "Anyone within [sua organizacao]".
+Caso contrario, o quiz nao conseguira enviar dados para a planilha.
+
+Cole a URL do Apps Script aqui no chat para eu configurar o rastreamento:
 ```
 
-Em seguida, usar `AskUserQuestion` com 1 pergunta:
-- Header: "URL do Apps Script"
-- Pergunta: "Cole aqui a URL gerada pelo Google Apps Script apos o deploy:"
-- Tipo: other (campo de texto livre)
+**4. Aguardar a resposta do usuario no chat** (ele vai colar a URL diretamente). NAO usar `AskUserQuestion` — a pergunta ja foi feita no texto acima.
 
 Armazenar a URL respondida como `[APPS_SCRIPT_URL]` para usar na ETAPA 3A.
 
@@ -270,22 +290,36 @@ Criar o arquivo substituindo `[APPS_SCRIPT_URL]` pela URL real informada pelo us
 
   // ---- Envio para Sheets ----
   // Fire-and-forget: nao bloqueia a navegacao entre telas
+  //
+  // Estrategia de envio (resolve 404 em Apps Script):
+  //   1. fetch POST com redirect:'follow' e Content-Type text/plain (simple request, sem preflight CORS)
+  //   2. Fallback: GET via Image pixel — contorna CORS e redirects completamente
+  //
+  // Por que NAO usar sendBeacon: Apps Script redireciona (302) de /exec para
+  // googleusercontent.com, e sendBeacon nao segue redirects — resulta em 404.
+  // Por que NAO usar mode:'no-cors': o redirect 302 converte POST em GET, perdendo o body.
+
+  function enviarViaImagem_(url, dados) {
+    var img = new Image();
+    img.src = url + '?data=' + encodeURIComponent(JSON.stringify(dados));
+  }
+
   window.enviarParaSheets = function (payload) {
     if (!APPS_SCRIPT_URL) return;
     try {
       var dados = Object.assign({ sessionId: sessionId, timestamp: new Date().toISOString() }, payload);
-      // navigator.sendBeacon e mais confiavel para Apps Script (sem redirect issues)
-      // Fallback para fetch com text/plain (unico Content-Type simples permitido em no-cors)
-      var blob = new Blob([JSON.stringify(dados)], { type: 'text/plain' });
-      if (navigator.sendBeacon) {
-        navigator.sendBeacon(APPS_SCRIPT_URL, blob);
-      } else {
-        fetch(APPS_SCRIPT_URL, {
-          method: 'POST',
-          mode: 'no-cors',
-          body: blob
-        });
-      }
+      var json = JSON.stringify(dados);
+
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        redirect: 'follow',
+        headers: { 'Content-Type': 'text/plain' },
+        body: json
+      }).then(function (r) {
+        if (!r.ok) enviarViaImagem_(APPS_SCRIPT_URL, dados);
+      }).catch(function () {
+        enviarViaImagem_(APPS_SCRIPT_URL, dados);
+      });
     } catch (e) {
       // Silencia erros para nao interromper o quiz
     }
@@ -378,6 +412,11 @@ Criar o arquivo com o passo a passo de configuracao:
 
 > A URL tem o formato: `https://script.google.com/macros/s/XXXXXX/exec`
 
+> **ATENCAO — Google Workspace:** Se sua conta Google pertence a uma organizacao
+> (ex: @empresa.com.br), na etapa 3 escolha **"Anyone"** (qualquer pessoa),
+> NAO "Anyone within [sua organizacao]". Caso contrario, acessos externos ao
+> quiz receberao erro 404 e nenhum dado chegara na planilha.
+
 ---
 
 ## Passo 4: Embedar no HTML do quiz
@@ -433,6 +472,15 @@ Ou inline: copie o conteudo do `sheets-tracking.js` diretamente no HTML entre ta
 **A aba "Respostas" nao foi criada**
 - O Apps Script cria a aba automaticamente na primeira requisicao
 - Se a planilha estava vazia e nenhuma requisicao chegou, a aba nao existe ainda
+
+**Erro 404 ao enviar dados (comum em contas Workspace)**
+- Se sua conta Google pertence a uma organizacao (ex: @empresa.com.br), o deploy deve usar "Who has access: Anyone" — NAO "Anyone within [org]"
+- Refaca o deploy com a configuracao correta: Deploy > New deployment > Web App > Anyone
+
+**Dados nao chegam na planilha mas nao ha erro visivel**
+- O quiz usa fallback automatico: se o POST falhar, reenvia via GET (Image pixel)
+- Abra o DevTools (F12) > aba Network e filtre por "macros" para verificar se os requests estao saindo
+- Se aparecer um request GET com parametro ?data=... e status 200, o fallback esta funcionando
 
 **Linhas duplicadas por participante**
 - Verifique se o `localStorage` do navegador nao foi limpo entre sessoes

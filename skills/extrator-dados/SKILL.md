@@ -51,6 +51,7 @@ Ler o texto com atencao e identificar:
 - `preco`: Preco mencionado (ex: "R$ 197", "12x de R$ 19,90")
 - `link_checkout`: URL de compra, se mencionado
 - `transformacao_principal`: O resultado/promessa principal que o produto entrega
+- `logo_url`: URL da logo do produto, se mencionada no copy (nao inferir — adicionar a `campos_ausentes` se nao encontrada)
 
 ### Do publico
 - `descricao`: Perfil do publico-alvo (quem e, situacao atual, nivel de conhecimento)
@@ -117,6 +118,7 @@ Se ausentes, deixar vazios e adicionar ao `campos_ausentes`.
     "preco": "string",
     "link_checkout": "string",
     "transformacao_principal": "string",
+    "logo_url": "string",
     "objetivos_especificos": ["string", "string", "string", "string"],
     "amplificar_oportunidade": "string",
     "entregaveis": "string"
@@ -133,6 +135,7 @@ Se ausentes, deixar vazios e adicionar ao `campos_ausentes`.
   "desejos": ["string", "string", "string"],
   "depoimentos": [],
   "depoimentos_quantidade": "string — '3+', '1-2' ou '0' (inferido do copy; imagens serao coletadas pelo revisor-dados)",
+  "imagens_quiz": [],
   "campos_ausentes": ["lista de campos nao encontrados nem inferidos"]
 }
 ```
